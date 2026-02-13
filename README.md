@@ -1,38 +1,76 @@
 # Secure Transactions Mini-App
 
-Turbo monorepo with:
+This repository contains my implementation of the Mirfa Secure Transactions challenge.
 
-- `apps/web` - Next.js UI
-- `apps/api` - Fastify API
-- `packages/crypto` - Envelope encryption logic
+## Stack
 
-## Prerequisites
+- `apps/web`: Next.js frontend
+- `apps/api`: Fastify backend
+- `packages/crypto`: shared envelope encryption logic
+- Workspace: TurboRepo + pnpm + TypeScript
+
+## What the app does
+
+The UI lets you:
+
+1. enter `partyId` and a JSON payload,
+2. encrypt and store it,
+3. fetch the encrypted record,
+4. decrypt it back to the original payload.
+
+The backend exposes:
+
+- `POST /tx/encrypt`
+- `GET /tx/:id`
+- `POST /tx/:id/decrypt`
+
+Storage is an in-memory `Map`.
+
+## Encryption design
+
+I implemented envelope encryption with `AES-256-GCM`:
+
+1. generate a random 32-byte DEK,
+2. encrypt payload JSON with DEK,
+3. wrap DEK using the master key,
+4. store nonce/ciphertext/tag values as hex.
+
+Implemented in `packages/crypto/src/index.ts`.
+
+Validation includes:
+
+- invalid hex rejection,
+- nonce length check (12 bytes),
+- auth tag length check (16 bytes),
+- tamper detection on ciphertext/tag,
+- decryption failure handling.
+
+Tests are in `packages/crypto/tests/crypto.test.ts`.
+
+## Local run
+
+Prerequisites:
 
 - Node.js 20+
 - pnpm
 
-## Local setup
+Setup:
 
-1. Copy `.env.example` to `.env`
-2. Set a 32-byte master key as hex (`MASTER_KEY_HEX`)
-3. Install and run:
+1. Copy `.env.example` to `.env`.
+2. Set `MASTER_KEY_HEX` to a 64-char hex key.
+3. Run:
 
 ```bash
 pnpm install
 pnpm dev
 ```
 
-Default ports:
+Local URLs:
 
 - Web: `http://localhost:3000`
 - API: `http://localhost:3001`
 
-## Verify locally
-
-1. Open `http://localhost:3000`
-2. Use:
-   - `partyId`: `party_123`
-   - payload:
+Quick verification payload:
 
 ```json
 {
@@ -41,53 +79,22 @@ Default ports:
 }
 ```
 
-3. Click `Encrypt & Save`, then `Fetch`, then `Decrypt`.
-4. Confirm decrypted payload equals original payload.
+## Deployment (Vercel)
 
-Optional API-only check:
+Deploy as two projects:
 
-```bash
-curl -X POST http://localhost:3001/tx/encrypt \
-	-H "Content-Type: application/json" \
-	-d '{"partyId":"party_123","payload":{"amount":100,"currency":"AED"}}'
-```
+1. API project root: `apps/api`
+2. Web project root: `apps/web`
 
-## API
+Environment variables:
 
-- `POST /tx/encrypt`
-- `GET /tx/:id`
-- `POST /tx/:id/decrypt`
+- API: `MASTER_KEY_HEX`
+- Web: `NEXT_PUBLIC_API_URL=<deployed api url>`
 
-## Deployment
+After deployment, run the same flow in production:
 
-Deploy `apps/web` and `apps/api` as separate Vercel projects.
+`Encrypt & Save` → `Fetch` → `Decrypt`
 
-- `apps/web` env: `NEXT_PUBLIC_API_URL=<api url>`
-- `apps/api` env: `MASTER_KEY_HEX=<64 hex chars>`
+## Implementation note
 
-### Suggested Vercel settings
-
-- API project root: `apps/api`
-- Web project root: `apps/web`
-- Install command: `pnpm install`
-- Build command: keep defaults from each app
-
-After deploy:
-
-1. Update `NEXT_PUBLIC_API_URL` in web project to API production URL
-2. Redeploy web
-3. Run the same `Encrypt & Save` → `Fetch` → `Decrypt` flow in production
-
-## Bug fixed during implementation
-
-- The API originally loaded `.env` only from `apps/api/.env`.
-- In Turbo monorepo runs, environment is often stored at repo root (`.env`).
-- Fixed by loading env from both app-level and root-level paths.
-
-## Loom walkthrough checklist
-
-- Turbo setup and package structure
-- Envelope encryption flow (DEK + wrapped DEK)
-- Vercel deployment setup
-- One bug fixed during implementation
-- Next improvements
+One issue I fixed was environment loading in monorepo dev mode. The API now reads `.env` from both `apps/api` and repo root, so `pnpm dev` from the workspace root works consistently.
