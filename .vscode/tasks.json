@@ -1,0 +1,33 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "typecheck",
+			"type": "shell",
+			"command": "pnpm",
+			"args": [
+				"typecheck"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "smoke-test",
+			"type": "shell",
+			"command": "pnpm",
+			"args": [
+				"-r",
+				"test"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "install-deps",
+			"type": "shell",
+			"command": "pnpm",
+			"args": [
+				"install"
+			],
+			"isBackground": false
+		}
+	]
+}
