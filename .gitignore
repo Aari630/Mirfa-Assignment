@@ -8,3 +8,4 @@ coverage
 .vscode
 .qodo
 *.tsbuildinfo
+.env*.local
