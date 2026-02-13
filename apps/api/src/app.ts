@@ -1,7 +1,7 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import { z } from 'zod';
-import { decryptTransaction, encryptTransaction } from '@mirfa/crypto';
+import { decryptTransaction, encryptTransaction } from '../../../packages/crypto/src/index.js';
 import { requireMasterKeyHex } from './config.js';
 import { txStore } from './store.js';
 
